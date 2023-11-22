@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "mc-gibbs"
+version = "0.1.0"
+description = "\"Monte Carlo with kernel-based Gibbs measures\""
+authors = ["Martin Rouault <martin.rouault@univ-lille.fr>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.8, <3.11"
+matplotlib = "^3.8.2"
+numpyro = "^0.13.2"
+jax = "^0.4.20"
+optax = "^0.1.7"
+
+[tool.poetry.group.dev.dependencies]
+poetry = "^1.7.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
