@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.8, <3.11"
+python = ">=3.9, <=3.11.6"
 matplotlib = "^3.8.2"
 numpyro = "^0.13.2"
 jax = "^0.4.20"
