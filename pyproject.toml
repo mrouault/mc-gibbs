@@ -12,9 +12,3 @@ matplotlib = "^3.8.2"
 numpyro = "^0.13.2"
 jax = "^0.4.20"
 optax = "^0.1.7"
-
-[tool.poetry.group.dev.dependencies]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
