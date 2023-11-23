@@ -14,7 +14,6 @@ jax = "^0.4.20"
 optax = "^0.1.7"
 
 [tool.poetry.group.dev.dependencies]
-poetry = ">= 1.1.11, <=^1.7.1"
 
 [build-system]
 requires = ["poetry-core"]
