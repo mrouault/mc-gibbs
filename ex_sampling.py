@@ -21,7 +21,7 @@ def norm_2_safe_for_grad(x) :
 def V(x) :
     return -0.5 + 0.5*norm_2_safe_for_grad(x)
 
-def g(x, y, eps = 1e-2) :
+def g(x, y, eps = 0.) :
     return - 0.5*jnp.log(norm_2_safe_for_grad(x-y) + eps**2)
 
 
