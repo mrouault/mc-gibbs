@@ -16,12 +16,18 @@ jax.config.update("jax_enable_x64", True)
 #------------------------------------------------------
 # Define kernel and confinment
 def norm_2_safe_for_grad(x) :
-      return jnp.power(jnp.linalg.norm(jnp.where(x != 0., x, 0.)), 2)
+    """A version of the squared norm that jax can differentiate without error
+    """
+    return jnp.power(jnp.linalg.norm(jnp.where(x != 0., x, 0.)), 2)
 
 def V(x) :
+    """Quadratic external potential
+    """
     return -0.5 + 0.5*norm_2_safe_for_grad(x)
 
 def g(x, y, eps = 0.) :
+    """Regularized Coulomb potential
+    """
     return - 0.5*jnp.log(norm_2_safe_for_grad(x-y) + eps**2)
 
 
@@ -48,5 +54,3 @@ fig, axes = plt.subplots()
 axes.scatter(*sample_mala_reshaped, alpha = 0.8, s = 10)
 axes.axis('equal')
 fig.savefig("test_fig.pdf")
-
-
