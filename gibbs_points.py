@@ -11,7 +11,7 @@ from mcmc_samplers import mh, mala
 
 class gibbs(numpyro.distributions.Distribution) :
 
-    def __init__(self, d, n, K, beta_n, V = None) :
+    def __init__(self, d, n, K, beta_n, V) :
         '''
         :param K : translation invariant kernel function K : R^d x R^d -> R, might be infinite on the diagonal.
         '''
