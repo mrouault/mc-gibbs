@@ -11,6 +11,8 @@ import numpyro
 #import optax
 import jax
 #from jax.config import config
+import sys
+sys.path.append('..')
 from gibbs_points import gibbs
 jax.config.update("jax_enable_x64", True)
 #------------------------------------------------------
@@ -23,7 +25,7 @@ def norm_2_safe_for_grad(x) :
 def V(x) :
     """Quadratic external potential
     """
-    return -0.5 + 0.5*norm_2_safe_for_grad(x)
+    return 0.5*norm_2_safe_for_grad(x)
 
 def g(x, y, eps = 0.) :
     """Regularized Coulomb potential

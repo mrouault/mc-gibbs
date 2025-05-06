@@ -35,7 +35,6 @@ class gibbs(numpyro.distributions.Distribution) :
         k_inter = lambda j ,k : jnp.where(j == k, 0., self.K(X[:, j], X[:, k])) #doesn't count diagonal terms
         pair_j = lambda j : jit(vmap(partial(k_inter, j)))(index).sum()
         pair_jit = jit(vmap(pair_j))(index).sum()
-        #pair_inter = jnp.log(self.beta_N) +jnp.log(pair_jit) -jnp.log(2) - 2*jnp.log(self.N)
         pair_inter = self.beta_n * (pair_jit )/  (2*self.n**2)
 
         v_inter = lambda j : self.V(X[:, j])
@@ -43,7 +42,6 @@ class gibbs(numpyro.distributions.Distribution) :
         exter_V = self.beta_n * ext_jit / self.n
 
         return - pair_inter - exter_V
-        #return  -jnp.exp(exter_V)*(jnp.exp(pair_inter - exter_V) +1)
 
     def sample(self, key, start_sample, n_iter, step_size, method = 'mala') :
         '''
@@ -58,5 +56,3 @@ class gibbs(numpyro.distributions.Distribution) :
                                n_iter = n_iter,
                                step_size =  step_size)))(random.split(key, 1), start_sample)
         return {"samples": sample_mala, "acceptance": acceptance}
-    
-    #mettre des logsumpexp pour l'instabilité

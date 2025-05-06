@@ -3,11 +3,12 @@ from jax import numpy as jnp
 from jax import scipy
 from jax import random, Array, jit, vmap, grad
 from jax.tree_util import Partial as partial
-from jax.lax import fori_loop, cond, dynamic_slice
+from jax.lax import fori_loop, cond, dynamic_slice, scan
 import numpyro
 import optax
 import jax
 
+#-------------------------------------------------------
 def mh(key: Array,
          start_sample: Array,
          log_prob_target: Callable[[jnp.ndarray], jnp.ndarray],
@@ -54,6 +55,7 @@ def mh(key: Array,
                           init_val=(all_positions, key, jnp.array([0.])))
     return positions, acceptance
 
+#-------------------------------------------------------
 def mala(key: Array,
          start_sample: Array,
          log_prob_target: Callable[[jnp.ndarray], jnp.ndarray],
@@ -96,9 +98,6 @@ def mala(key: Array,
                  None)
         return (x, key, acceptance)
 
-    sample, k, acceptance = fori_loop(0,
-                          n_iter,
-                          body_fun=mh_step,
-                          init_val= (start_sample, key, jnp.array([0.])))
+    sample, k, acceptance = fori_loop(0, n_iter, mh_step, (start_sample, key, jnp.array([0.])))
     sample = jnp.atleast_2d(sample)
     return sample, acceptance
