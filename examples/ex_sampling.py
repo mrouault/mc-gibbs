@@ -1,5 +1,7 @@
 #Imports
 #%matplotlib inline
+import os
+os.environ['JAX_PLATFORMS'] = 'cpu'
 from typing import Callable
 import matplotlib.pyplot as plt
 from jax import numpy as jnp
@@ -13,6 +15,7 @@ import jax
 #from jax.config import config
 import sys
 sys.path.append('..')
+sys.path.append('..\\.venv\\lib\\site-packages')
 from gibbs_points import gibbs
 jax.config.update("jax_enable_x64", True)
 #------------------------------------------------------
@@ -39,7 +42,7 @@ key = random.PRNGKey(0)
 key, _ = random.split(key, 2)
 d = 2
 n = 500
-beta_n = n**3
+beta_n = n**2
 n_iter = 5_000
 step_size = 0.9* (beta_n)**(-1)
 mvn = numpyro.distributions.MultivariateNormal(loc=jnp.zeros(d*n), covariance_matrix= jnp.eye(d*n))
@@ -56,3 +59,9 @@ fig, axes = plt.subplots()
 axes.scatter(*sample_mala_reshaped, alpha = 0.8, s = 10)
 axes.axis('equal')
 fig.savefig("test_fig.pdf")
+
+#------------------------------------------------------
+
+
+
+

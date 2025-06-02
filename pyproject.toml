@@ -8,14 +8,15 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = ">=3.9, <=3.12"
+python = ">=3.10, <=3.12"
 matplotlib = "^3.8.2"
 numpyro = "^0.13.2"
-jax = "^0.4.20"
+jax = {extras = ["cuda12"], version = "^0.6.1"}
 optax = "^0.1.7"
 seaborn = "^0.13.2"
 scikit-learn = ">=1.6.1"
 gudhi = "^3.11.0"
+goodpoints = "^0.3.4"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"

@@ -40,7 +40,7 @@ class gibbs(numpyro.distributions.Distribution) :
         v_inter = lambda j : self.V(X[:, j])
         ext_jit = jit(vmap(v_inter))(index).sum()
         exter_V = self.beta_n * ext_jit / self.n
-
+        
         return - pair_inter - exter_V
 
     def sample(self, key, start_sample, n_iter, step_size, method = 'mala') :
