@@ -5,7 +5,7 @@ sys.path.append('..')
 sys.path.append('.')
 sys.path.append('..\\.venv\\lib\\site-packages')
 import os
-#os.environ['JAX_PLATFORMS'] = 'cpu'
+os.environ['JAX_PLATFORMS'] = 'cpu'
 from typing import Callable
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -110,10 +110,10 @@ axes.scatter(*sample_mcmc[0, :, :2].T, alpha = 0.5, s = 10, label = "Background"
 axes.scatter(*X_thinned[:, :2].T, alpha = 0.8, s = 10)
 axes.axis('equal')
 axes.legend()
-fig.savefig("thinned_points.pdf")
+fig.savefig("examples/thinned_points.pdf")
 
 #Save points
 #points = pickle.load(open("points.p", "rb"))
 points = {}
 points["thinned"] = X_thinned.T #shape (d, n)
-pickle.dump(points, open("points_test_slurm.p", "wb"))
+pickle.dump(points, open("examples/points_test_slurm.p", "wb"))

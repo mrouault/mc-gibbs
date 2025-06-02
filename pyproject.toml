@@ -11,7 +11,8 @@ package-mode = false
 python = ">=3.10, <=3.12"
 matplotlib = "^3.8.2"
 numpyro = "^0.13.2"
-jax = {extras = ["cuda12"], version = "^0.6.1"}
+nvidia-cublas-cu12="^12.9.0.13"
+jax = {extras = ["cuda12"], version = "^0.6.0"}
 optax = "^0.1.7"
 seaborn = "^0.13.2"
 scikit-learn = ">=1.6.1"
