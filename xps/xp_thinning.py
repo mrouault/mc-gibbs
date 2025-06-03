@@ -5,7 +5,7 @@ sys.path.append('..')
 sys.path.append('.')
 sys.path.append('..\\.venv\\lib\\site-packages')
 import os
-os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
+import argparse
 #os.environ['JAX_PLATFORMS'] = 'cpu'
 from typing import Callable
 import matplotlib as mpl
@@ -34,6 +34,20 @@ plt.rc('legend', fontsize=22)
 mpl.rcParams['ps.useafm'] = True
 mpl.rcParams['pdf.use14corefonts'] = True
 #mpl.rcParams['text.usetex'] = True
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Script that specifies parameters for thinning"
+    )
+    parser.add_argument("--key_mcmc", required=True, type=int)
+    parser.add_argument("--key_thinning", required=True, type=int)
+    parser.add_argument("--step_size", required=True, type=float)
+    parser.add_argument("--n", required=True, type=int)
+    args = parser.parse_args()
+    key_mcmc = args.key_mcmc
+    key_thinning = args.key_thinning
+    step_size_mh = args.step_size
+    n = args.n
 #------------------------------------------------------
 #Define kernel, external confinment and target distribution
 d = 3
@@ -41,16 +55,15 @@ d = 3
 def norm_2_safe_for_grad(x) :
       return jnp.power(jnp.linalg.norm(jnp.where(x != 0., x, 0.)), 2)
 
-def g(x, y, s = d-2) : #coulomb
-    return jnp.power(norm_2_safe_for_grad(x-y), -s/2)
-    # return - 0.5*jnp.log(norm_2_safe_for_grad(x-y) + eps**2)
-
-def K_riesz(x, y, eps = 0.1, s = d-2) : #coulomb
-    return jnp.power(norm_2_safe_for_grad(x-y) + eps**2, -s/2)
-    # return - 0.5*jnp.log(norm_2_safe_for_grad(x-y) + eps**2)
+#kernel for thinning
+def kernel_eval(x: Array, y: Array) -> Array:
+    eps = 0.1
+    s = d-2
+    dist_sq =  np.sum((x-y)**2,axis=1)
+    return((eps**2+dist_sq)**(-s/2))
 
 #Target distribution: 3D truncated Gaussian
-sigma = 0.1
+sigma = 0.5
 
 class gaussian_trunc(numpyro.distributions.Distribution) :
 
@@ -76,51 +89,42 @@ class gaussian_trunc(numpyro.distributions.Distribution) :
         return res
     
 #------------------------------------------------------
-key = random.PRNGKey(0)
+key = random.PRNGKey(key_mcmc)
 mvn = numpyro.distributions.MultivariateNormal(loc=jnp.zeros(d), covariance_matrix= jnp.eye(d))
 target_mcmc = gaussian_trunc()
-step_size_mh = 5e-3
+step_size_mh = args.step_size #5e-3
+m = np.log2(n).astype('int')
+n_iter_mh = 2**(np.log2(n).astype('int')) * n
 
-#kernel thinning: select 100 points from 10_000
-def kernel_eval(x: Array, y: Array) -> Array:
-    eps = 0.1
-    s = d-2
-    dist_sq =  np.sum((x-y)**2,axis=1) 
-    return((eps**2+dist_sq)**(-s/2))
 #------------------------------------------------------
-l_sizes = [50*k for k in range(1, 11)]
-l_m = np.log2(l_sizes).astype('int') #number of halving rounds
-l_n_iter_mcmc = [l_sizes[k]* 2**l_m[k] for k in range(len(l_sizes))] #number of mcmc samples
-print(l_n_iter_mcmc)
-points_thinned = {}
-res_thinning = {"step_size_mh": step_size_mh,
-                   "l_sizes": l_sizes,
-                   "l_m": l_m,
-                   "l_n_iter_mcmc": l_n_iter_mcmc,
-                   "target": "truncated 3D gaussian",
-                   "sigma": sigma,
-                   "kernel": "regularized Coulomb",
-                   "d": d,
-                   "eps": 0.1,
-                   "points_thinned" : points_thinned}
-
-for i in range(len(l_sizes)):
-    #long mcmc
-    key, _ = random.split(key, 2)
-    start_sample_v = mvn.sample(key, (1, ))
-    sample_mh_jit = vmap(partial(mh,
+#long mcmc
+key, _ = random.split(key, 2)
+start_sample_v = mvn.sample(key, (1, ))
+sample_mh_jit = vmap(partial(mh,
                                 log_prob_target = target_mcmc.log_prob,
-                                n_iter = l_n_iter_mcmc[i],
+                                n_iter = n_iter_mh,
                                 step_size = step_size_mh))
-    sample_mcmc, acceptance_mcmc = jit(sample_mh_jit)(random.split(key, 1), start_sample_v) #has shape (1, n_iter_mh, d)
-    print(f"Acceptance rate:{acceptance_mcmc}")
-    X = sample_mcmc[0, :, :]
-    X_thinned = np.zeros((100, d, l_sizes[i]))
-    print(X_thinned.shape)
-    #kernel thinning
-    for j in range(100):
-        coreset = kt.thin(X, l_m[i], split_kernel  = kernel_eval, swap_kernel = kernel_eval, delta = 0.5, store_K = True, verbose = True)
-        X_thinned[j, :, :] =  X[coreset, :].T
-    points_thinned[l_sizes[i]] = X_thinned
-    res_thinning['points_thinned'] = points_thinned
-    pickle.dump(res_thinning, open('xps/points_thinning.p', 'wb'))
+sample_mcmc, acceptance_mcmc = jit(sample_mh_jit)(random.split(key, 1), start_sample_v) #has shape (1, n_iter_mh, d)
+fig, axes = plt.subplots()
+print(acceptance_mcmc)
+
+X = sample_mcmc[0, :, :]
+coreset = kt.thin(X, m, split_kernel  = kernel_eval, swap_kernel = kernel_eval, delta = 0.5, store_K = True, verbose = True, seed = key_thinning)
+X_thinned = X[coreset, :]
+print(X_thinned.shape)
+#------------------------------------------------------
+#Save results
+dic_thinning = {"step_size_mh": step_size_mh,
+                "n": n,
+                "key_mcmc": key_mcmc,
+                "key_thinning": key_thinning,
+                "m": m,
+                "n_iter_mh": n_iter_mh,
+                "target": "truncated 3D gaussian",
+                "sigma": sigma,
+                "kernel": "regularized Coulomb",
+                "d": d,
+                "eps": 0.1,
+                "acceptance_rate" : acceptance_mcmc,
+                "points_thinned" : X_thinned.T}
+pickle.dump(dic_thinning, open("points_thinning_"+str(n)+"_"+str(key_thinning)+".p", "wb"))
