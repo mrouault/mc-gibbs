@@ -102,13 +102,13 @@ key, _ = random.split(key, 2)
 start_sample_v = mvn.sample(key, (1, ))
 sample_mh_jit = vmap(partial(mh,
                                 log_prob_target = target_mcmc.log_prob,
-                                n_iter = n_iter_mh,
+                                n_iter = 5_000+n_iter_mh,
                                 step_size = step_size_mh))
 sample_mcmc, acceptance_mcmc = jit(sample_mh_jit)(random.split(key, 1), start_sample_v) #has shape (1, n_iter_mh, d)
 fig, axes = plt.subplots()
 print(acceptance_mcmc)
 
-X = sample_mcmc[0, :, :]
+X = sample_mcmc[0, 5_000:, :]
 coreset = kt.thin(X, m, split_kernel  = kernel_eval, swap_kernel = kernel_eval, delta = 0.5, store_K = True, verbose = True, seed = key_thinning)
 X_thinned = X[coreset, :]
 print(X_thinned.shape)
@@ -120,11 +120,13 @@ dic_thinning = {"step_size_mh": step_size_mh,
                 "key_thinning": key_thinning,
                 "m": m,
                 "n_iter_mh": n_iter_mh,
+                "burn_in_mcmc" : 5000,
                 "target": "truncated 3D gaussian",
                 "sigma": sigma,
                 "kernel": "regularized Coulomb",
                 "d": d,
                 "eps": 0.1,
-                "acceptance_rate" : acceptance_mcmc,
+                "acceptance_mcmc" : acceptance_mcmc,
+                "points_mcmc" : X.T,
                 "points_thinned" : X_thinned.T}
 pickle.dump(dic_thinning, open("points_thinning_"+str(n)+"_"+str(key_thinning)+".p", "wb"))
