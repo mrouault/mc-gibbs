@@ -59,7 +59,8 @@ def g(x, y, s = d-2) : #coulomb
     # return - 0.5*jnp.log(norm_2_safe_for_grad(x-y) + eps**2)
 
 def K_riesz(x, y, eps = 0.1, s = d-2) : #coulomb
-    return jnp.power(norm_2_safe_for_grad(x-y) + eps**2, -s/2)
+    #return jnp.power(norm_2_safe_for_grad(x-y) + eps**2, -s/2)
+    return jnp.exp(-norm_2_safe_for_grad(x-y))
     # return - 0.5*jnp.log(norm_2_safe_for_grad(x-y) + eps**2)
 
 #Target distribution: 3D truncated Gaussian

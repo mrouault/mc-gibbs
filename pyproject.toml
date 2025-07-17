@@ -18,6 +18,7 @@ seaborn = "^0.13.2"
 scikit-learn = ">=1.6.1"
 gudhi = "^3.11.0"
 goodpoints = "^0.3.4"
+blackjax = "^1.2.5"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"

@@ -20,35 +20,31 @@ mpl.rcParams['pdf.use14corefonts'] = True
 mpl.rcParams['text.usetex'] = True
 
 #load points
-dir_mcmc = "../xps/points_mcmc/points_mcmc_500_0.p"
-dir_gibbs_mh_n2 = "../xps/points_gibbs_mh_tempn2_env1000_itgibbs10000/points_gibbs_mh_500_0.p"
-dir_gibbs_mh_n3 = "../xps/points_gibbs_mh_temp_n3_env1000_itgibbs10000/points_gibbs_mh_500_0.p"
+dir_mcmc = "points_mcmc_500_0.p"
+dir_gibbs_mh_n2 = "points_gibbs_mh_500_0.p"
+dir_gibbs_mh_n3 = "points_gibbs_mh_500_0.p"
 
 points_mcmc = pickle.load(open(dir_mcmc,  "rb"))["points_mcmc"]
 points_gibbs_mh_n2 = pickle.load(open(dir_gibbs_mh_n2, "rb"))["points_gibbs"]
 points_gibbs_mh_n3 =pickle.load(open(dir_gibbs_mh_n3, "rb"))["points_gibbs"]
 
+fig, axes = plt.subfig()
 ac_mcmc = gd.AlphaComplex(points_mcmc)
 st = ac_mcmc.create_simplex_tree()
 st.compute_persistence()
 diagram = st.persistence_intervals_in_dimension(2)
-axes = gd.plot_persistence_diagram(diagram)
-plt.savefig("test_persistence_diagram_mcmc.pdf")
+gd.plot_persistence_diagram(diagram, ax = axes)
 
-plt.clf()
-plt.cla()
 ac_gibbs_mh = gd.AlphaComplex(points_gibbs_mh_n2)
 st = ac_gibbs_mh.create_simplex_tree()
 st.compute_persistence()
 diagram = st.persistence_intervals_in_dimension(2)
-axes = gd.plot_persistence_diagram(diagram)
-plt.savefig("test_persistence_diagram_gibbs_mh_n2.pdf")
+axes = gd.plot_persistence_diagram(diagram, ax = axes)
 
-plt.clf()
-plt.cla()
-ac_gibbs_gibbs = gd.AlphaComplex(points_gibbs_mh_n3)
-st = ac_gibbs_gibbs.create_simplex_tree()
+ac_gibbs_mh = gd.AlphaComplex(points_gibbs_mh_n3)
+st = ac_gibbs_mh.create_simplex_tree()
 st.compute_persistence()
 diagram = st.persistence_intervals_in_dimension(2)
-axes = gd.plot_persistence_diagram(diagram)
-plt.savefig("test_persistence_diagram_gibbs_mh_n3.pdf")
+axes = gd.plot_persistence_diagram(diagram, ax = axes)
+
+plt.savefig("test_persistence.pdf")
