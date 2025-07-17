@@ -29,18 +29,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Script that specifies parameters for thinning"
     )
-    parser.add_argument("--key_mcmc", required=True, type=int)
+    parser.add_argument("--key_env", required=True, type=int)
     parser.add_argument("--key_gibbs", required=True, type=int)
-    parser.add_argument("--step_size_mcmc_env", required=True, type=float)
+    parser.add_argument("--step_size_env_coulomb", required=True, type=float)
     parser.add_argument("--step_size_gibbs", required=True, type=float)
+    parser.add_argument("--n_env", required=True, type=int)
+    parser.add_argument("--beta_n_env", required=True, type=float)
     parser.add_argument("--n_iter_env", required=True, type=int)
     parser.add_argument("--n_iter_gibbs", required=True, type=int)
     parser.add_argument("--n", required=True, type=int)
     parser.add_argument("--beta_n", required=True, type=float)
     args = parser.parse_args()
-    key_mcmc = args.key_mcmc
+    key_env = args.key_env
     key_gibbs = args.key_gibbs
-    step_size_mcmc_env = args.step_size_mcmc_env
+    step_size_env_coulomb = args.step_size_env_coulomb
+    n_env = args.n_env
+    beta_n_env = args.beta_n_env
     step_size_gibbs = args.step_size_gibbs
     n_iter_env = args.n_iter_env
     n_iter_gibbs = args.n_iter_gibbs
@@ -101,31 +105,35 @@ def V_approx(x, sample, K, log_w):#using logs in the weights for numerical stabi
 
     return V_ext(x) - jnp.exp(v_inter)
 
+def V_unif(x, d = d, R = 5*sigma) :
+    return V_ext(x) + (d-2)/(2*R**d) * norm_2_safe_for_grad(x)
+
 #-------------------------------------------------------
 #Initial samples
-key_mcmc = random.PRNGKey(key_mcmc)
+key_env_mala = random.PRNGKey(key_env)
 key_gibbs_mala = random.PRNGKey(key_gibbs)
 mvn = numpyro.distributions.MultivariateNormal(loc=jnp.zeros(d), covariance_matrix= jnp.eye(d))
 mvn_n = numpyro.distributions.MultivariateNormal(loc=jnp.zeros(d*n), covariance_matrix= jnp.eye(d*n))
 target_mcmc = gaussian_trunc()
 
 #------------------------------------------------------
-#mcmc sample
-start_sample_v = mvn.sample(key_mcmc, (1, ))
-sample_mh_jit = vmap(partial(mh,
-                                log_prob_target = target_mcmc.log_prob,
-                                n_iter = 5_000+n_iter_env,
-                                step_size = step_size_mcmc_env))
-sample_mcmc, acceptance_mcmc = jit(sample_mh_jit)(random.split(key_mcmc, 1), start_sample_v) #has shape (1, n_iter_mh, d)
-print(acceptance_mcmc)
-V_mcmc = lambda x : V_approx(x, sample = sample_mcmc[0, 5_000:, :].T, K = K_riesz, log_w = jnp.zeros(n_iter_env)) #uniform weights, discard some burn in
+#coulomb sample with uniform target
+start_sample_coulomb = mvn_n.sample(key_env_mala, (1, ))
+target_coulomb = gibbs(d, n_env, g, beta_n_env, V = V_unif)
+sample_coulomb_jit = target_coulomb.sample(key_env_mala, start_sample_coulomb, n_iter = n_iter_env, step_size = step_size_env_coulomb)
+sample_pot_reshaped = sample_coulomb_jit["samples"].reshape((d, n_env))
+acceptance_coulomb = sample_coulomb_jit["acceptance"]
+print(acceptance_coulomb)
+
+log_w = jnp.array([gaussian_trunc().log_prob(sample_pot_reshaped[:, i]) for i in range(n_env)]).reshape((n_env, 1)) #w = pi / mu_V with \mu_V uniform
+V_coulomb = lambda x : V_approx(x, sample = sample_pot_reshaped, K = K_riesz, log_w = log_w) #uniform weights, discard some burn in
 
 #------------------------------------------------------
 #gibbs sample
 start_sample_gibbs = mvn_n.sample(key_gibbs_mala, (1, ))
-target = gibbs(d, n, K_riesz, beta_n, V = V_mcmc)
+target = gibbs(d, n, K_riesz, beta_n, V = V_coulomb)
 sample_gibbs = target.sample(key_gibbs_mala, start_sample_gibbs, n_iter = n_iter_gibbs, step_size = step_size_gibbs)
-sample_mala_reshaped_mh = sample_gibbs["samples"].reshape((d, n))
+sample_mala_reshaped_coulomb = sample_gibbs["samples"].reshape((d, n))
 acceptance_gibbs = sample_gibbs["acceptance"]
 print(acceptance_gibbs)
 print(target.log_prob(start_sample_gibbs))
@@ -134,25 +142,26 @@ print(target.log_prob(sample_gibbs["samples"]))
 #------------------------------------------------------
 #Save results
 dic_gibbs = {
-    "step_size_mcmc_env": step_size_mcmc_env,
+    "step_size_env": step_size_env_coulomb,
     "step_size_gibbs": step_size_gibbs,
     "n_iter_env": n_iter_env,
     "n_iter_gibbs": n_iter_gibbs,
-    "burn_in_mcmc": 5_000,
+    "n_env": n_env,
+    "beta_n_env": beta_n_env, 
     "n": n,
     "beta_n": beta_n,
-    "key_mcmc": key_mcmc,
+    "key_env": key_env,
     "key_gibbs": key_gibbs,
     "target": "truncated 3D gaussian",
     "sigma": sigma,
     "kernel": "regularized Coulomb",
     "d": d,
     "eps": 0.1,
-    "acceptance_mcmc": acceptance_mcmc,
+    "acceptance_env_coulomb": acceptance_coulomb,
     "acceptance_gibbs": acceptance_gibbs,
-    "points_mcmc": sample_mcmc[0, 5_000:, :].T,  # Discard burn-in,
-    "points_gibbs": sample_mala_reshaped_mh
+    "points_env_coulomb": sample_pot_reshaped,
+    "points_gibbs": sample_mala_reshaped_coulomb
 }
 
-s = str(n)+"_"+str(key_gibbs)+"_tempn2_env1000_itgibbs50000"
-pickle.dump(dic_gibbs, open("points_gibbs_mh_"+s+".p", "wb"))
+s = str(n)+"_"+str(key_gibbs)+"_tempn2_itgibbs10000_envn__tempenvn2_itgibbsenv10000"
+pickle.dump(dic_gibbs, open("points_gibbs_coulomb_"+s+".p", "wb"))

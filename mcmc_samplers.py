@@ -29,7 +29,7 @@ def mh(key: Array,
 
         positions, key, acceptance = val
         sample = jnp.atleast_2d(positions[i-1, :])
-        key, subkey_u, subkey_sample = random.split(key, 3)
+        key, subkey_u, subkey_sample, _ = random.split(key, 4)
         #Sample the langevin kernel
         noise = random.normal(subkey_sample, (sample.shape[-1],))
         next = sample + jnp.sqrt(2 * step_size) * noise
@@ -77,7 +77,7 @@ def mala(key: Array,
     def mh_step(i, val):
 
         sample, key, acceptance = val
-        key, subkey_u, subkey_sample = random.split(key, 3)
+        key, subkey_u, subkey_sample, _ = random.split(key, 4)
         #Sample the langevin kernel
 
         noise = random.normal(subkey_sample, (sample.shape[-1],))
