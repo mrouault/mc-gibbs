@@ -65,14 +65,14 @@ class gaussian_trunc(numpyro.distributions.Distribution) :
 
         return res
 #long MCMCs to approximate the interaction energy, should they be indep between each runs?
-key_mcmc = random.PRNGKey(0)
+key_mcmc = random.PRNGKey(150)
 mvn = numpyro.distributions.MultivariateNormal(loc=jnp.zeros(d), covariance_matrix= jnp.eye(d))
 target_mcmc = gaussian_trunc()
 
 key_mcmc_1, key_mcmc_2, _ = random.split(key_mcmc, 3)
 sample_mh_jit = jit(vmap(partial(mh,
                                 log_prob_target = target_mcmc.log_prob,
-                                n_iter = 100_000,
+                                n_iter = 20_000,
                                 step_size = 1e-1)))
 
 start_sample_v = mvn.sample(key_mcmc_1, (1, ))
@@ -128,9 +128,9 @@ for file in os.listdir(dir):
         i+=1
 
 #compute averaged energies for each n with different sampling methods
-def compute_averaged_energy(samples, i_pi): #average energy over 100 independent runs
+def compute_averaged_energy(samples, i_pi = 0.): #average energy over 100 independent runs
     #samples should have shape (n_samples, d, n)
-    I_list = jnp.array([I_riesz(samples[i, :,  :]+i_pi) for i in range(samples.shape[0])])
+    I_list = jnp.array([I_riesz(samples[i, :,  :])+i_pi for i in range(samples.shape[0])])
     I_averaged = jnp.mean(I_list, axis = 0)
     I_var =  jnp.var(I_list, axis = 0)
     I_med = jnp.median(I_list, axis = 0)
@@ -145,7 +145,7 @@ if l_energies_dir == None:
     l_energies[dir] = {}
     l_energies_dir = l_energies[dir]
 print(l_energies)
-mean, var, med, quantile_90 = compute_averaged_energy(samples_s, I_pi)
+mean, var, med, quantile_90 = compute_averaged_energy(samples_s, i_pi = 0.)
 l_energies_dir[str(n)] = {'mean': mean, 'var': var, 'med': med, 'quantile_90': quantile_90}
 print(l_energies_dir[str(n)])
 #print(l_energies)

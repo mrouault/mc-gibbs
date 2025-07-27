@@ -155,5 +155,10 @@ dic_gibbs = {
     "points_gibbs": sample_mala_reshaped_mh
 }
 
-s = str(n)+"_"+str(key_gibbs)+"_tempn3_env1000_itgibbs200000"
+s = str(n)+"_"+str(key_gibbs)+"_tempn2_env1000_itgibbs50000"
 pickle.dump(dic_gibbs, open("points_gibbs_mh_"+s+".p", "wb"))
+
+fig, axes = plt.subplots()
+axes.scatter(*sample_mala_reshaped_mh[:2, :], alpha = 0.8, s = 10)
+axes.axis('equal')
+fig.savefig("points_gibbs_gaussian_kernel.pdf")

@@ -54,15 +54,15 @@ l_gibbs_coulomb_tempn3 = np.array([l_var['pickles_gibbs_coulomb_tempn3'][str(k)]
 
 fig, axes = plt.subplots()
 axes.loglog(l, l_mcmc, ls = "--", marker = "o", markersize = 6, label = "MCMC")
-#axes.loglog(l, l_gibbs_mh_tempn2_nenv1000_itgibbs50000, ls = "--", marker = "o", markersize = 6, label = "$T = 50000$")
+axes.loglog(l, l_gibbs_mh_tempn2_nenv1000_itgibbs50000, ls = "--", marker = "o", markersize = 6, label = "$T = 50000$")
 axes.loglog(l, l_gibbs_mh_tempn52_nenv1000_itgibbs10000,ls = "--", marker = "o", markersize = 6, label = "Gibbs $\\beta_n = n^{5/2}$")
 axes.loglog(l, l_gibbs_mh_tempn2_env1000_itgibbs10000 , ls = "--", marker = "o", markersize = 6, label = "Gibbs $\\beta_n = n^2$")
 #axes.loglog(l, l_gibbs_mh_tempn2_env5000_itgibbs10000 , ls = "--", marker = "o", markersize = 6, label = "MH $M_n = 5000$")
 #axes.loglog(l, l_gibbs_mh_tempn2_envn_itgibbs10000, ls = "--", marker = "o", markersize = 6, label = "MH $M_n = n$")
 axes.loglog(l_n, l_thinning, ls = "--", marker = "o", markersize = 6, label = "KT")
 axes.loglog(l, l_gibbs_mh_temp_n3_env1000_itgibbs10000, ls = "--", marker = "o", markersize = 6, label = "Gibbs $\\beta_n = n^3$")
-#axes.loglog(l, l_gibbs_coulomb_tempn2+c, ls = "--", marker = "o", markersize = 6, label = "$\\beta_n = n^2$")
-#axes.loglog(l, l_gibbs_coulomb_tempn3+c, ls = "--", marker = "o", markersize = 6, label = "$\\beta_n = n^3$")
+#axes.loglog(l, l_gibbs_coulomb_tempn2, ls = "--", marker = "o", markersize = 6, label = "$\\beta_n = n^2$")
+#axes.loglog(l, l_gibbs_coulomb_tempn3, ls = "--", marker = "o", markersize = 6, label = "$\\beta_n = n^3$")
 
 axes.legend()
 axes.set_xlabel("Number of particles")
