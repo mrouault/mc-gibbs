@@ -40,6 +40,10 @@ plt.rcParams['axes.unicode_minus'] = False
 #mpl.rcParams['text.usetex'] = True
 
 file_mcmc = "pickles_mcmc/points_mcmc_500_0.p"
+file_gibbs_n2_10k = "pickles_gibbs_mh_tempn2_env1000_itgibbs10000/points_gibbs_mh_500_0_tempn2_env1000_itgibbs10000.p"
+file_mcmc_300 = "pickles_mcmc/points_mcmc_300_0.p"
+file_gibbs_n2_10k_300 = "pickles_gibbs_mh_tempn2_env1000_itgibbs10000/points_gibbs_mh_300_0_tempn2_env1000_itgibbs10000.p"
+file_gibbs_n2_50k_300 = "pickles_gibbs_mh_tempn2_nenv1000_itgibbs50000/points_gibbs_mh_300_0_tempn2_env1000_itgibbs50000.p"
 file_gibbs_n2_50k = "pickles_gibbs_mh_tempn2_nenv1000_itgibbs50000/points_gibbs_mh_500_0_tempn2_env1000_itgibbs50000.p"
 file_gibbs_n3_50k = "pickles_gibbs_mh_temp_n3_env1000_itgibbs50000/points_gibbs_mh_500_0_tempn3_env1000_itgibbs50000.p"
 file_gibbs_n3_100k = "pickles_gibbs_mh_temp_n3_env1000_itgibbs100000/points_gibbs_mh_500_0_tempn3_env1000_itgibbs100000.p"
@@ -50,6 +54,11 @@ points_gibbs_n2_50k = pickle.load(open(file_gibbs_n2_50k, "rb"))['points_gibbs']
 points_gibbs_n3_50k = pickle.load(open(file_gibbs_n3_50k, "rb"))['points_gibbs']
 points_gibbs_n3_100k = pickle.load(open(file_gibbs_n3_100k, "rb"))['points_gibbs']
 points_gibbs_n3_200k = pickle.load(open(file_gibbs_n3_200k, "rb"))['points_gibbs']
+
+points_mcmc_300 = pickle.load(open(file_mcmc_300, "rb"))['points_mcmc']
+points_gibbs_n2_10k = pickle.load(open(file_gibbs_n2_10k, "rb"))['points_gibbs']
+points_gibbs_n2_10k_300 = pickle.load(open(file_gibbs_n2_10k_300, "rb"))['points_gibbs']
+points_gibbs_n2_50k_300 = pickle.load(open(file_gibbs_n2_50k_300, "rb"))['points_gibbs']
 
 fig, axes = plt.subplots()
 axes.scatter(*points_mcmc[:2, :], alpha = 0.8, s = 10)
@@ -85,3 +94,31 @@ axes.set_aspect('equal',adjustable='box')
 axes.set_xlim(-2.5, 2.5)
 axes.set_ylim(-2.5, 2.5)
 fig.savefig("points_gibbs_n3_200k.pdf")
+
+fig, axes = plt.subplots()
+axes.scatter(*points_mcmc_300[:2, :], alpha = 0.8, s = 10)
+axes.set_aspect('equal',adjustable='box')
+axes.set_xlim(-2.5, 2.5)
+axes.set_ylim(-2.5, 2.5)
+fig.savefig("points_gibbs_mcmc_300.pdf")
+
+fig, axes = plt.subplots()
+axes.scatter(*points_gibbs_n2_10k[:2, :], alpha = 0.8, s = 10)
+axes.set_aspect('equal',adjustable='box')
+axes.set_xlim(-2.5, 2.5)
+axes.set_ylim(-2.5, 2.5)
+fig.savefig("points_gibbs_n2_10k.pdf")
+
+fig, axes = plt.subplots()
+axes.scatter(*points_gibbs_n2_10k_300[:2, :], alpha = 0.8, s = 10)
+axes.set_aspect('equal',adjustable='box')
+axes.set_xlim(-2.5, 2.5)
+axes.set_ylim(-2.5, 2.5)
+fig.savefig("points_gibbs_n2_10k_300.pdf")
+
+fig, axes = plt.subplots()
+axes.scatter(*points_gibbs_n2_50k_300[:2, :], alpha = 0.8, s = 10)
+axes.set_aspect('equal',adjustable='box')
+axes.set_xlim(-2.5, 2.5)
+axes.set_ylim(-2.5, 2.5)
+fig.savefig("points_gibbs_n2_50k_300.pdf")

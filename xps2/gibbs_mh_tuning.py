@@ -1,3 +1,12 @@
+#######################
+# Tuning step size for Gibbs measure
+# Target is a 10D truncated Gaussian on the unit ball with sigma = 0.1
+# Interaction is a Gaussian kernel
+# External confinment is approximated with 1000 MCMC samples with 5000 burn in iterations, initialized with a Gaussian distribution with small variance
+# each coordinate of MALA is initialized with the same law as vanilla MCMC
+#used alpha = 1e-4 for beta_n = n**2 for MALA and MH, alpha = 1e-4 resp 1e-5 for beta_n = n**3 for MALA resp MH
+
+
 #Imports
 #%matplotlib inline
 import sys
@@ -24,6 +33,7 @@ from gibbs_points import gibbs
 jax.config.update("jax_enable_x64", True)
 import pickle
 import numpy as np
+import time
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -47,16 +57,13 @@ if __name__ == "__main__":
     n = args.n
     beta_n = args.beta_n
 
-#Target is truncated Gaussian in dimension 10 on B(0, 1) and with variance 0.1
-#Kernel is Riesz regularized with s = d-2 and eps = 0.1
-#We use 5000 burn in iterations for the approximation of the pot
-
 #------------------------------------------------------
 #Define kernel, external confinment and target distribution
 d = 10
 
 def norm_2_safe_for_grad(x) :
-      return jnp.power(jnp.linalg.norm(jnp.where(x != 0., x, 0.)), 2)
+    return jnp.sum(x**2)
+
 
 def g(x, y, s = d-2) : #coulomb
     return jnp.power(norm_2_safe_for_grad(x-y), -s/2)
@@ -66,6 +73,9 @@ def K_riesz(x, y, eps = 0.1, s = d-2) : #coulomb
     return jnp.power(norm_2_safe_for_grad(x-y) + eps**2, -s/2)
     #return jnp.exp(-norm_2_safe_for_grad(x-y))
     # return - 0.5*jnp.log(norm_2_safe_for_grad(x-y) + eps**2)
+
+def K_gauss(x, y) :
+    return jnp.exp(-0.5*norm_2_safe_for_grad(x-y))
 
 #Target distribution: 10D truncated Gaussian on B(0, 1)
 sigma = 0.1
@@ -111,10 +121,11 @@ def V_approx(x, sample, K, log_w):#using logs in the weights for numerical stabi
 #Initial samples
 key_mcmc = random.PRNGKey(key_mcmc)
 key_gibbs_mala = random.PRNGKey(key_gibbs)
-mvn = numpyro.distributions.MultivariateNormal(loc=jnp.zeros(d), covariance_matrix= jnp.eye(d))
-mvn_n = numpyro.distributions.MultivariateNormal(loc=jnp.zeros(d*n), covariance_matrix= jnp.eye(d*n))
+mvn = numpyro.distributions.MultivariateNormal(loc=jnp.zeros(d), covariance_matrix= 0.01*jnp.eye(d))
+#mvn_n = numpyro.distributions.MultivariateNormal(loc=jnp.zeros(d*n), covariance_matrix= jnp.eye(d*n))
 target_mcmc = gaussian_trunc()
 
+t0 = time.time()
 #------------------------------------------------------
 #mcmc sample
 start_sample_v = mvn.sample(key_mcmc, (1, ))
@@ -122,21 +133,26 @@ sample_mh_jit = vmap(partial(mh,
                                 log_prob_target = target_mcmc.log_prob,
                                 n_iter = 5_000+n_iter_env,
                                 step_size = step_size_mcmc_env))
-sample_mcmc, acceptance_mcmc = jit(sample_mh_jit)(random.split(key_mcmc, 1), start_sample_v) #has shape (1, n_iter_mh, d)
+sample_mcmc, log_probs_mcmc, acceptance_mcmc = jit(sample_mh_jit)(random.split(key_mcmc, 1), start_sample_v) #has shape (1, n_iter_mh, d)
 print(acceptance_mcmc)
-V_mcmc = lambda x : V_approx(x, sample = sample_mcmc[0, 5_000:, :].T, K = K_riesz, log_w = jnp.zeros(n_iter_env)) #uniform weights, discard some burn in
+V_mcmc = lambda x : V_approx(x, sample = sample_mcmc[0, 5_000:, :].T, K = K_gauss, log_w = jnp.zeros(n_iter_env)) #uniform weights, discard some burn in
 
 #------------------------------------------------------
 #gibbs sample
-start_sample_gibbs = mvn_n.sample(key_gibbs_mala, (1, ))
-target = gibbs(d, n, K_riesz, beta_n, V = V_mcmc)
-sample_gibbs = target.sample(key_gibbs_mala, start_sample_gibbs, n_iter = n_iter_gibbs, step_size = step_size_gibbs)
-sample_mala_reshaped_mh = sample_gibbs["samples"].reshape((d, n))
+start_sample_gibbs = mvn.sample(key_gibbs_mala, (n, ))
+start_sample_gibbs_reshaped = start_sample_gibbs.T.reshape((1, d*n))
+target = gibbs(d, n, K_gauss, beta_n, V = V_mcmc)
+sample_gibbs = target.sample(key_gibbs_mala, start_sample_gibbs_reshaped, n_iter = n_iter_gibbs, step_size = step_size_gibbs, method = 'mh', stable = False)
+sample_mala_reshaped_mh = sample_gibbs["samples"].reshape((n_iter_gibbs, d, n))
 acceptance_gibbs = sample_gibbs["acceptance"]
+log_probs_gibbs = sample_gibbs["log_probs"]
 print(acceptance_gibbs)
-print(target.log_prob(start_sample_gibbs))
-print(target.log_prob(sample_gibbs["samples"]))
 
+print(target.log_prob_stable(jnp.atleast_2d(start_sample_gibbs)))
+
+print(target.log_prob_stable(sample_gibbs["samples"][:, -1, :]))
+
+print("Total time :", time.time() - t0)
 #------------------------------------------------------
 #Save results
 dic_gibbs = {
@@ -151,14 +167,16 @@ dic_gibbs = {
     "key_gibbs": key_gibbs,
     "target": "truncated 10D gaussian",
     "sigma": sigma,
-    "kernel": "regularized Coulomb",
+    "kernel": "Gaussian kernel",
     "d": d,
-    "eps": 0.1,
+    "eps": 1.,
     "acceptance_mcmc": acceptance_mcmc,
     "acceptance_gibbs": acceptance_gibbs,
     "points_mcmc": sample_mcmc[0, 5_000:, :].T,  # Discard burn-in,
-    "points_gibbs": sample_mala_reshaped_mh
+    "points_gibbs": sample_mala_reshaped_mh,
+    "gibbs_log_probs": log_probs_gibbs,
+    "mcmc_log_probs": log_probs_mcmc
 }
 
-s = "step_size_tuning"
-pickle.dump(dic_gibbs, open("points_gibbs_mh_"+s+".p", "wb"))
+s = "step_size_tuning_mh_n2"
+pickle.dump(dic_gibbs, open("gibbs_"+s+".p", "wb"))
