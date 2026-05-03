@@ -1,5 +1,5 @@
 #100 independent MCMC samples and two other independent ones to compute the MMD
-#removed 5000 burn in iterations, step size is 1e-3, target is 10 truncated Gaussian on B(0, 1) with variance 0.01
+#removed 5000 burn in iterations, step size is 1e-3, target is 10 truncated Gaussian on B(0, 2*sigma)
 
 
 #Imports
@@ -64,8 +64,8 @@ def norm_2_safe_for_grad(x) :
       return jnp.power(jnp.linalg.norm(jnp.where(x != 0., x, 0.)), 2)
 
 
-#Target distribution: 10D truncated Gaussian on B(0, 1)
-sigma = 0.1
+#Target distribution: 10D truncated Gaussian on B(0, 2*sigma)
+sigma = 1.
 class gaussian_trunc(numpyro.distributions.Distribution) :
 
     def __init__(self):
@@ -77,7 +77,7 @@ class gaussian_trunc(numpyro.distributions.Distribution) :
 
     def outlier(self, value):
 
-        return norm_2_safe_for_grad(value) >= 1.
+        return norm_2_safe_for_grad(value) >= (2*sigma)**2
 
     def log_prob(self, value) :
 
@@ -98,14 +98,14 @@ dic_mcmc = {"step_size_mh": step_size_mh,
             "n_iter": n_iter,
             "key_mcmc": {},
             "burn_in_mcmc" : 5000,
-            "target": "10D truncated Gaussian",
-            "sigma": 0.1,
+            "target": "10D truncated Gaussian at 2*sigma",
+            "sigma": sigma,
             "d": d,
             "acceptance_mcmc" : {},
             "points_mcmc" : {}}
 
-times = np.ones(102)
-for k in range(102): #lauching two more independent chain to compute the energies
+times = np.ones(100)
+for k in range(100): #lauching two more independent chain to compute the energies
     #long mcmc
     t0 = time.time()
     key, _ = random.split(key, 2)

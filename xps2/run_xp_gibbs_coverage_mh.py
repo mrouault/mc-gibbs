@@ -1,11 +1,11 @@
 import os
 
 #run 5 times the 100 draws of Gibbs measures to compute coverages, with different keys to ensure indepence
-#using MH, step size is 1e-4 for beta_n = n**2 and 1e-5 for beta_n = n**3
+#using MH, step size is 3e-5 for beta_n = n**2 and 5e-6 for beta_n = n**3
 
 key_mcmc = 0
-step_size_mcmc_env = 1e-3
-step_size_gibbs = 1e-4
+step_size_mcmc_env = 1e-1
+step_size_gibbs = 3e-5
 n_iter_env = 1_000
 n_iter_gibbs = 10_000
 n = 100
@@ -33,8 +33,8 @@ for k in range(5):
     os.system("sbatch run_xp_gibbs_"+s+".slurm")
 
 key_mcmc = 0
-step_size_mcmc_env = 1e-3
-step_size_gibbs = 1e-5
+step_size_mcmc_env = 1e-1
+step_size_gibbs = 5e-6
 n_iter_env = 1_000
 n_iter_gibbs = 10_000
 n = 100

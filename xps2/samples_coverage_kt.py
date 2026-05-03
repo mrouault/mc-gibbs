@@ -74,7 +74,7 @@ def kernel_eval(x, y, params_k = {"var": 1.}) :
     return(np.exp(scale*k_vals))
 
 #Target distribution: 10D truncated Gaussian on B(0, 1)
-sigma = 0.1
+sigma = 1.
 class gaussian_trunc(numpyro.distributions.Distribution) :
 
     def __init__(self):
@@ -86,7 +86,7 @@ class gaussian_trunc(numpyro.distributions.Distribution) :
 
     def outlier(self, value):
 
-        return norm_2_safe_for_grad(value) >= 1.
+        return norm_2_safe_for_grad(value) >= (2*sigma)**2
 
     def log_prob(self, value) :
 
@@ -113,11 +113,10 @@ dic_thinning = {"step_size_mh": step_size_mh,
                 "number of halving rounds": m,
                 "n_iter_mh": n_iter_mh,
                 "burn_in_mcmc" : 5000,
-                "target": "10D truncated Gaussian",
-                "sigma": 1.,
+                "target": "10D truncated Gaussian at 2*sigma",
+                "sigma": sigma,
                 "kernel": "Gaussian kernel",
                 "d": d,
-                "eps": 0.1,
                 "acceptance_mcmc" : {},
                 "points_mcmc" : {},
                 "points_thinned" :{}}
@@ -151,4 +150,4 @@ for k in range(100):
 #------------------------------------------------------
 #Save results
 
-pickle.dump(dic_thinning, open("points_thinning_"+str(n)+"_"+str(key_thinning)+".p", "wb"))
+pickle.dump(dic_thinning, open("kt/points_thinning_"+str(n)+"_"+str(key_thinning)+".p", "wb"))

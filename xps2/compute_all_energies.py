@@ -34,9 +34,9 @@ import time
 dic_mcmc = pickle.load(open("mcmc/points_mcmc_coverage.p", "rb"))
 I_K_pi = dic_mcmc["I_K_pi"]
 
-key_mcmc = 1000 #not used before
-step_size = 1e-3
-n_iter = 100_000
+key_mcmc = 10_000 #not used before
+step_size = 0.1
+n_iter = 1_000_000
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -55,7 +55,7 @@ def K_gauss(x, y) :
     return jnp.exp(-0.5*norm_2_safe_for_grad(x-y))
 
 #Target distribution: 10D truncated Gaussian on B(0, 1)
-sigma = 0.1
+sigma = 1.
 class gaussian_trunc(numpyro.distributions.Distribution) :
 
     def __init__(self):
@@ -67,7 +67,7 @@ class gaussian_trunc(numpyro.distributions.Distribution) :
 
     def outlier(self, value):
 
-        return norm_2_safe_for_grad(value) >= 1.
+        return norm_2_safe_for_grad(value) >= (2*self.sigma)**2
 
     def log_prob(self, value) :
 
@@ -87,6 +87,8 @@ sample_mh_jit = jit(vmap(partial(mh,
                             log_prob_target = target_mcmc.log_prob,
                             n_iter = 5_000+n_iter,
                             step_size = step_size)))
+start_sample_v = mvn.sample(key, (1, ))
+sample_mcmc, log_probs_mcmc, acceptance_mcmc = sample_mh_jit(random.split(key, 1), start_sample_v)
 
 
 #-----------------------------------------
@@ -132,19 +134,20 @@ def kernel_inter_sum_blocked(sample_1, sample_2, block_size=10_000):
 def compute_energy(sample, key):
     n = sample.shape[1]
     key, _ = random.split(key, 2)
-    start_sample_v = mvn.sample(key, (1, ))
-    sample_mcmc, log_probs_mcmc, acceptance_mcmc = sample_mh_jit(random.split(key, 1), start_sample_v)
-    return kernel_inter_sum_blocked(sample, sample) - 2*kernel_inter_sum_blocked(sample, sample_mcmc[0, 5_000:, :].T) + I_K_pi
+    #sub-sampling mcmc points to compute IK(\mu_n, \pi)
+    indices = random.choice(key, 1_000_000, shape=(100_000,))
+    sample_mcmc_sub = sample_mcmc[0, 5_000+indices, :].T
+    return kernel_inter_sum_blocked(sample, sample) - 2*kernel_inter_sum_blocked(sample, sample_mcmc_sub) + I_K_pi
 
 
 
 #Gibbs
 if samples_names == "gibbs_mala_n2":
-    paths = ["gibbs_last/last_gibbs_mala_0_0_0.001_0.0001_1000_10000_100_10000.0.p",
-            "gibbs_last/last_gibbs_mala_0_1_0.001_0.0001_1000_10000_100_10000.0.p",
-            "gibbs_last/last_gibbs_mala_0_2_0.001_0.0001_1000_10000_100_10000.0.p",
-            "gibbs_last/last_gibbs_mala_0_3_0.001_0.0001_1000_10000_100_10000.0.p",
-            "gibbs_last/last_gibbs_mala_0_4_0.001_0.0001_1000_10000_100_10000.0.p"]
+    paths = ["gibbs_last/last_gibbs_mala_0_0_1000_10000_100_10000.0.p",
+            "gibbs_last/last_gibbs_mala_0_1_1000_10000_100_10000.0.p",
+            "gibbs_last/last_gibbs_mala_0_2_1000_10000_100_10000.0.p",
+            "gibbs_last/last_gibbs_mala_0_3_1000_10000_100_10000.0.p",
+            "gibbs_last/last_gibbs_mala_0_4_1000_10000_100_10000.0.p"]
     for s in paths:
         print(s)
         dic = pickle.load(open(s, "rb"))
@@ -158,11 +161,11 @@ if samples_names == "gibbs_mala_n2":
 
 
 if samples_names == "gibbs_mala_n3":
-    paths = ["gibbs_last/last_gibbs_mala_0_0_0.001_0.0001_1000_10000_100_1000000.0.p",
-            "gibbs_last/last_gibbs_mala_0_1_0.001_0.0001_1000_10000_100_1000000.0.p",
-            "gibbs_last/last_gibbs_mala_0_2_0.001_0.0001_1000_10000_100_1000000.0.p",
-            "gibbs_last/last_gibbs_mala_0_3_0.001_0.0001_1000_10000_100_1000000.0.p",
-            "gibbs_last/last_gibbs_mala_0_4_0.001_0.0001_1000_10000_100_1000000.0.p"]
+    paths = ["gibbs_last/last_gibbs_mala_0_0_1000_10000_100_1000000.0.p",
+            "gibbs_last/last_gibbs_mala_0_1_1000_10000_100_1000000.0.p",
+            "gibbs_last/last_gibbs_mala_0_2_1000_10000_100_1000000.0.p",
+            "gibbs_last/last_gibbs_mala_0_3_1000_10000_100_1000000.0.p",
+            "gibbs_last/last_gibbs_mala_0_4_1000_10000_100_1000000.0.p"]
     for s in paths:
         print(s)
         dic = pickle.load(open(s, "rb"))
@@ -175,11 +178,11 @@ if samples_names == "gibbs_mala_n3":
         pickle.dump(dic, open(s, "wb"))
 
 if samples_names == "gibbs_mh_n2":
-    paths = ["gibbs_last/last_gibbs_mh_0_0_0.001_0.0001_1000_10000_100_10000.0.p",
-            "gibbs_last/last_gibbs_mh_0_1_0.001_0.0001_1000_10000_100_10000.0.p",
-            "gibbs_last/last_gibbs_mh_0_2_0.001_0.0001_1000_10000_100_10000.0.p",
-            "gibbs_last/last_gibbs_mh_0_3_0.001_0.0001_1000_10000_100_10000.0.p",
-            "gibbs_last/last_gibbs_mh_0_4_0.001_0.0001_1000_10000_100_10000.0.p"]
+    paths = ["gibbs_last/last_gibbs_mh_0_0_1000_10000_100_10000.0.p",
+            "gibbs_last/last_gibbs_mh_0_1_1000_10000_100_10000.0.p",
+            "gibbs_last/last_gibbs_mh_0_2_1000_10000_100_10000.0.p",
+            "gibbs_last/last_gibbs_mh_0_3_1000_10000_100_10000.0.p",
+            "gibbs_last/last_gibbs_mh_0_4_1000_10000_100_10000.0.p"]
     for s in paths:
         print(s)
         dic = pickle.load(open(s, "rb"))
@@ -192,11 +195,11 @@ if samples_names == "gibbs_mh_n2":
         pickle.dump(dic, open(s, "wb"))
 
 if samples_names == "gibbs_mh_n3":
-    paths = ["gibbs_last/last_gibbs_mh_0_0_0.001_1e-05_1000_10000_100_1000000.0.p",
-            "gibbs_last/last_gibbs_mh_0_1_0.001_1e-05_1000_10000_100_1000000.0.p",
-            "gibbs_last/last_gibbs_mh_0_2_0.001_1e-05_1000_10000_100_1000000.0.p",
-            "gibbs_last/last_gibbs_mh_0_3_0.001_1e-05_1000_10000_100_1000000.0.p",
-            "gibbs_last/last_gibbs_mh_0_4_0.001_1e-05_1000_10000_100_1000000.0.p"]
+    paths = ["gibbs_last/last_gibbs_mh_0_0_1000_10000_100_1000000.0.p",
+            "gibbs_last/last_gibbs_mh_0_1_1000_10000_100_1000000.0.p",
+            "gibbs_last/last_gibbs_mh_0_2_1000_10000_100_1000000.0.p",
+            "gibbs_last/last_gibbs_mh_0_3_1000_10000_100_1000000.0.p",
+            "gibbs_last/last_gibbs_mh_0_4_1000_10000_100_1000000.0.p"]
     for s in paths:
         print(s)
         dic = pickle.load(open(s, "rb"))

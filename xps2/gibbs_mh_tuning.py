@@ -1,10 +1,12 @@
 #######################
 # Tuning step size for Gibbs measure
-# Target is a 10D truncated Gaussian on the unit ball with sigma = 0.1
+# Target is a 10D truncated Gaussian on B(0, 2*sigma)
 # Interaction is a Gaussian kernel
 # External confinment is approximated with 1000 MCMC samples with 5000 burn in iterations, initialized with a Gaussian distribution with small variance
 # each coordinate of MALA is initialized with the same law as vanilla MCMC
-#used alpha = 1e-4 for beta_n = n**2 for MALA and MH, alpha = 1e-4 resp 1e-5 for beta_n = n**3 for MALA resp MH
+#MCMC step size: 1e-1
+#MH step size: 3e-5 for beta_n = n**2, 5e-6 for beta_n = n**3
+#MALA step_size = 5e-5 for beta_n = n**2, step size: 2e-6 for beta_n = n**3
 
 
 #Imports
@@ -78,7 +80,7 @@ def K_gauss(x, y) :
     return jnp.exp(-0.5*norm_2_safe_for_grad(x-y))
 
 #Target distribution: 10D truncated Gaussian on B(0, 1)
-sigma = 0.1
+sigma = 1.
 class gaussian_trunc(numpyro.distributions.Distribution) :
 
     def __init__(self):
@@ -90,7 +92,7 @@ class gaussian_trunc(numpyro.distributions.Distribution) :
 
     def outlier(self, value):
 
-        return norm_2_safe_for_grad(value) >= 1.
+        return norm_2_safe_for_grad(value) >= (2*sigma)**2
 
     def log_prob(self, value) :
 
@@ -104,8 +106,7 @@ class gaussian_trunc(numpyro.distributions.Distribution) :
 
 #Define approximated V
 def V_ext(x) :
-    #R_2 = (5* sigma)**2
-    R_2 = 1.
+    R_2 = (2* sigma)**2
     outlier = norm_2_safe_for_grad(x) >= R_2
     res = jnp.where(outlier, norm_2_safe_for_grad(x) - R_2, 0.)
     return res

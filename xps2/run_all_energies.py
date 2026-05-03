@@ -3,7 +3,7 @@ import os
 l_samples = ["gibbs_mala_n2", "gibbs_mala_n3", "gibbs_mh_n2", "gibbs_mh_n3", "kt", "mcmc"]
 l_samples_mcmc = ["mcmc"]
 
-for name in l_samples_mcmc:
+for name in l_samples:
     s = name
     with open("run_energies_"+s+".slurm", "w") as file:
         file.write("#!/bin/bash\n")

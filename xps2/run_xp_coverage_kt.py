@@ -4,7 +4,7 @@ import os
 #using MH, step size is 1e-4 for beta_n = n**2 and 1e-5 for beta_n = n**3
 
 key_mcmc = 0
-step_size = 1e-3
+step_size = 0.1
 n = 100
 
 for k in range(5):
